@@ -1,0 +1,172 @@
+---
+title: "Midterm Presentation"
+subtitle: "Numerical Analysis"
+author: "Katie Salas"
+format: 
+  revealjs:
+    smaller: true
+    scrollable: true
+    theme: serif
+    self-contained: true
+editor: visual
+from: markdown+emoji
+---
+
+Computer Problem 2.1.2
+
+Let $H$ denote the $n × n$ Hilbert matrix, whose $(i,j)$ entry is $\frac{1}{(i + j − 1)}$. Use the Matlab program from Computer Problem 1 to solve $H x = b$, where b is the vector of all ones, for (a) $n = 2$, (b) $n = 5$, (c) $n = 10$.
+
+Calculate the condition number of matrices. Can you find a constant vector and "approximate" solution whose emf comes close to realizing the CN?
+
+{python}
+from scipy.linalg import hilbert
+import numpy as np
+from numpy import linalg as LA
+from pprint import pprint
+
+Hilbert Matrix
+
+A square and symmetric matrix where each element is a unit fraction.
+
+$$h_{i,j}=\frac{1}{i+j-1}, (i,j = 1,2,...n)$$
+
+{python}
+#| echo: true
+H = hilbert(3)
+
+def hilmat(a, b):
+    return [[1 / (i + j + 1) for j in range(b)] for i in range(a)]
+  
+pprint(hilmat(3,3))
+H
+
+Naive Gaussian Elimination
+
+Gaussian elimination is a method for solving matrix equations of the form Ax=b. Naive means no row swapping.
+
+{python}
+#| echo: true
+H = hilbert(2)
+b = np.ones(2)
+
+def gauss(H,b):
+    n = len(b)
+    #elimination phase
+    for k in range(0,n-1):
+        for i in range(k+1,n):
+            if H[i,k] != 0.0:
+                #if not zero, define lambda(multiplier)
+                lam = H[i,k]/H[k,k]
+                #calculate new row
+                H[i,k+1:n] = H[i,k+1:n] - lam*H[k,k+1:n]
+                #update vector b
+                b[i] = b[i] - lam*b[k]
+                #backward substitution
+    for k in range(n-1,-1,-1):
+        b[k] = (b[k] - np.dot(H[k,k+1:n],b[k+1:n]))/H[k,k]
+    
+    return b
+
+gauss(H,b)
+#LA.solve(H,b)
+
+Condition Number
+
+The condition number of a square matrix A, cond(A), is the maximum possible error magnification factor for solving $Ax = b$, over all right-hand sides $b$.
+
+$$cond(A)=||A||*||A^{-1}||$$
+
+{python}
+#| echo: true
+H = hilbert(2)
+LA.norm(H, np.inf) * LA.norm(LA.inv(H), np.inf)
+
+LA.cond(H, np.inf)
+
+Error Magnification Factor
+
+$$EMF = \frac{\text{relative forward error}}{\text{relative backward error}}=\frac{\frac{||x-x_a||_{\infty}}{||x||_{\infty}}}{\frac{||r||_{\infty}}{||b||_{\infty}}}$$
+
+{python}
+#| echo: true
+
+def emf(n):
+  H = hilbert(n)
+  print(f"For matrix H: {H}")
+  b = np.ones(n)
+  x = H @ b
+  x_diff = b + 1e-6
+  X = gauss(H, x)
+  x_a = gauss(H, x_diff)
+  fe = abs(X - x_a)
+  r = x - H @ x_a
+  fe_norm = LA.norm(fe, np.inf)
+  X_norm = LA.norm(X, np.inf)
+  r_norm = LA.norm(r, np.inf)
+  b_norm = LA.norm(X, np.inf)
+  rfe = fe_norm/X_norm
+  print(f"The relative forward error is {rfe:.4}") 
+  rbe = r_norm/b_norm
+  print(f"The relative backward error is {rbe:.4}") 
+  emf = rfe/rbe
+  print(f"The error magnification factor is {emf:.4}")
+  print(f"The Condition Number is: {LA.cond(H, np.inf)}")
+  print()
+  
+emf(2)
+
+$n=2$
+
+{python}
+#| echo: true
+emf(2)
+
+$n=5$
+
+{python}
+emf(5)
+
+$n=10$
+
+{python}
+emf(10)
+
+Takeaway:
+
+As the condition number increases, the forward error becomes much larger than the backward error, therefore the error magnification factor gets increasingly larger. Hilbert matrices are ill-conditioned because they are prone to errors, the rows are linearly dependent, which means the matrix is close to singularity. Therefore, small rounding errors can cause large changes in the coefficients.
+
+Can you find a constant vector and "approximate" solution whose emf comes close to realzing the CN?
+
+😕
+
+{python}
+#| echo: true
+def canI(n):
+  H = hilbert(n)
+  #print(f"For matrix H: {H}")
+  b = np.random.randint(101, size = n)
+  x = H @ b
+  x_diff = b + 1e-6
+  X = gauss(H, x)
+  x_a = gauss(H, x_diff)
+  fe = abs(X - x_a)
+  r = x - H @ x_a
+  fe_norm = LA.norm(fe, np.inf)
+  X_norm = LA.norm(X, np.inf)
+  r_norm = LA.norm(r, np.inf)
+  b_norm = LA.norm(X, np.inf)
+  rfe = fe_norm/X_norm
+  rbe = r_norm/b_norm
+  emfactor = rfe/rbe
+  cn = LA.cond(H, np.inf)
+  if cn == emfactor:
+    return b, cn
+  else:
+     print(f"Try Again! Matrix {b} didn't work. The CN is {cn:.04}, and the emf is {emfactor:.04}.")
+
+canI(2)
+
+Thank You
+
+Thank You
+
